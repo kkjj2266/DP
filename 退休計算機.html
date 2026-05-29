@@ -328,14 +328,14 @@
       const inflation = parseNumber(document.getElementById("inflationInput").value) / 100;
       const years = parseNumber(document.getElementById("yearsInput").value);
       const retireYears = parseNumber(document.getElementById("retireYearsInput").value);
-
+      const inflationAdjustedWithdraw = withdraw * Math.pow(1 + inflation, years);
       const monthlyReturn = Math.pow(1 + annualReturn, 1 / 12) - 1;
       const monthlyInflation = Math.pow(1 + inflation, 1 / 12) - 1;
       const savingMonths = years * 12;
       const retirementMonths = retireYears * 12;
 
       const retirementNeeded = annuityPresentValue(
-        withdraw,
+        inflationAdjustedWithdraw,
         monthlyReturn,
         monthlyInflation,
         retirementMonths
@@ -358,12 +358,38 @@
       }
 
       document.getElementById("summaryBox").innerHTML = `
-        <div>退休時需要準備的本金：約 <strong>${money(retirementNeeded)}</strong></div>
-        <div>目前資產到退休時預估成長為：約 <strong>${money(currentFutureValue)}</strong></div>
-        <div>仍需靠每月存款補足：約 <strong>${money(Math.max(gap, 0))}</strong></div>
-        <div>年化投資報酬率：<strong>${percent(annualReturn)}</strong>；通膨率：<strong>${percent(inflation)}</strong></div>
-        <div>模型：退休後每月提領金額會隨通膨上升，未提領資產仍持續以投資報酬率複利成長。</div>
-      `;
+ <div>
+    退休當天等值生活費：
+    <strong>${money(inflationAdjustedWithdraw)}</strong>/月
+  </div>
+
+  <div>
+    退休時需要準備的本金：
+    <strong>${money(retirementNeeded)}</strong>
+  </div>
+
+  <div>
+    目前資產到退休時預估成長為：
+    <strong>${money(currentFutureValue)}</strong>
+  </div>
+
+  <div>
+    仍需靠每月存款補足：
+    <strong>${money(Math.max(gap, 0))}</strong>
+  </div>
+
+  <div>
+    年化投資報酬率：
+    <strong>${percent(annualReturn)}</strong>
+    ；通膨率：
+    <strong>${percent(inflation)}</strong>
+  </div>
+
+  <div>
+    模型：退休後每月提領金額會隨通膨上升，
+    未提領資產仍持續以投資報酬率複利成長。
+  </div>
+`;
     }
 
     calculate();
