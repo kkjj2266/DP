@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>退休每月存款計算機</title>
+  <style>
+    :root {
+      --blue: #0b4de8;
+      --gray: #777;
+      --border: #ddd;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      background: #fff;
+      color: #111;
+    }
+
+    .app {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 20px 22px 48px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 24px;
+      margin: 16px 0 28px;
+    }
+
+    .top-row,
+    .control-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .label-main {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .money-input,
+    .input-with-unit {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .money-input { font-size: 24px; }
+    .input-with-unit { font-size: 20px; }
+
+    input[type="text"] {
+      width: 130px;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-align: right;
+      font-size: 20px;
+      background: #fff;
+    }
+
+    .input-with-unit input[type="text"] {
+      width: 105px;
+      font-size: 18px;
+      padding: 6px 8px;
+    }
+
+    .result-box {
+      text-align: center;
+      margin: 34px 0;
+    }
+
+    .result-box p {
+      font-size: 18px;
+      margin: 6px 0;
+    }
+
+    .result {
+      color: #0646b5;
+      font-size: 56px;
+      line-height: 1.1;
+      font-weight: 700;
+      margin: 8px 0;
+    }
+
+    .note-link {
+      color: var(--blue);
+      font-size: 18px;
+      margin-top: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .control {
+      margin: 28px 0 34px;
+    }
+
+    .control-title { margin-bottom: 4px; }
+
+    .control-title .name {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .hint {
+      font-size: 14px;
+      color: var(--gray);
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--blue);
+    }
+
+    .summary {
+      display: none;
+      margin-top: 20px;
+      padding: 18px;
+      border-radius: 14px;
+      background: #f7f8fb;
+      line-height: 1.8;
+      font-size: 15px;
+    }
+
+    .summary strong { color: #0646b5; }
+
+    .warning {
+      color: #b00020;
+      font-size: 14px;
+      margin-top: 8px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>計算每月存款</h1>
+
+    <section class="top-row">
+      <div class="label-main">目前帳戶金額</div>
+      <div class="money-input">
+        <span>$</span>
+        <input id="currentMoney" type="text" inputmode="numeric" value="1,000,000" />
+      </div>
+    </section>
+
+    <section class="result-box">
+      <p>退休前，每個月底存入約</p>
+      <div class="result" id="monthlySave">$0</div>
+      <p>退休時就有夠用的錢了！</p>
+      <div class="note-link" id="toggleSummary">點此看計算摘要 ➡️</div>
+      <div class="warning" id="warningText"></div>
+    </section>
+
+    <section class="control">
+      <div class="control-title">
+        <div class="name">退休後每月欲提領金額</div>
+        <div class="input-with-unit">
+          <span>$</span>
+          <input id="withdrawInput" type="text" inputmode="numeric" value="50,000" />
+        </div>
+      </div>
+      <div class="hint">以「退休當下的生活水準」估算，不需先自行乘上通膨。</div>
+      <input id="withdrawRange" type="range" min="10000" max="200000" step="1000" value="50000" />
+    </section>
+
+    <section class="control">
+      <div class="control-title">
+        <div class="name">年化投資報酬率</div>
+        <div class="input-with-unit">
+          <input id="returnInput" type="text" inputmode="decimal" value="4" />
+          <span>%</span>
+        </div>
+      </div>
+      <div class="hint">退休前與退休後都假設資產持續投資，尚未提領的錢會繼續複利成長。</div>
+      <input id="returnRange" type="range" min="0" max="20" step="0.01" value="4" />
+    </section>
+
+    <section class="control">
+      <div class="control-title">
+        <div class="name">通膨率</div>
+        <div class="input-with-unit">
+          <input id="inflationInput" type="text" inputmode="decimal" value="2" />
+          <span>%</span>
+        </div>
+      </div>
+      <div class="hint">用來把退休後生活費逐年調高，也會影響實質投資報酬。</div>
+      <input id="inflationRange" type="range" min="0" max="10" step="0.01" value="2" />
+    </section>
+
+    <section class="control">
+      <div class="control-title">
+        <div class="name">離退休還有幾年</div>
+        <div class="input-with-unit">
+          <input id="yearsInput" type="text" inputmode="numeric" value="25" />
+          <span>年</span>
+        </div>
+      </div>
+      <div class="hint">有工作收入時，每個月底固定存一筆錢。</div>
+      <input id="yearsRange" type="range" min="1" max="60" step="1" value="25" />
+    </section>
+
+    <section class="control">
+      <div class="control-title">
+        <div class="name">退休後要領幾年</div>
+        <div class="input-with-unit">
+          <input id="retireYearsInput" type="text" inputmode="numeric" value="30" />
+          <span>年</span>
+        </div>
+      </div>
+      <div class="hint">退休後每月提領生活費，未提領的資產仍繼續投資增長。</div>
+      <input id="retireYearsRange" type="range" min="1" max="60" step="1" value="30" />
+    </section>
+
+    <section class="summary" id="summaryBox"></section>
+  </main>
+
+  <script>
+    const sliderPairs = [
+      { range: "withdrawRange", input: "withdrawInput", min: 10000, max: 200000, decimals: 0, comma: true },
+      { range: "returnRange", input: "returnInput", min: 0, max: 20, decimals: 2, comma: false },
+      { range: "inflationRange", input: "inflationInput", min: 0, max: 10, decimals: 2, comma: false },
+      { range: "yearsRange", input: "yearsInput", min: 1, max: 60, decimals: 0, comma: false },
+      { range: "retireYearsRange", input: "retireYearsInput", min: 1, max: 60, decimals: 0, comma: false }
+    ];
+
+    function parseNumber(value) {
+      const clean = String(value).replace(/,/g, "").replace(/[^0-9.]/g, "");
+      const parts = clean.split(".");
+      const normalized = parts.length > 2 ? parts[0] + "." + parts.slice(1).join("") : clean;
+      return Number(normalized || 0);
+    }
+
+    function formatNumber(value, decimals = 0, comma = true) {
+      const number = Number(value || 0);
+      return number.toLocaleString("zh-TW", {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+        useGrouping: comma
+      });
+    }
+
+    function money(value) {
+      return "$" + Math.round(value).toLocaleString("zh-TW");
+    }
+
+    function percent(value) {
+      return (value * 100).toFixed(2) + "%";
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function bindFormattedInput(inputId, options = {}) {
+      const input = document.getElementById(inputId);
+      const decimals = options.decimals ?? 0;
+      const comma = options.comma ?? true;
+      const min = options.min ?? 0;
+      const max = options.max ?? Infinity;
+      const linkedRange = options.range ? document.getElementById(options.range) : null;
+
+      input.addEventListener("focus", () => {
+        input.value = String(parseNumber(input.value));
+      });
+
+      input.addEventListener("input", () => {
+        let value = clamp(parseNumber(input.value), min, max);
+        if (linkedRange) linkedRange.value = value;
+        calculate();
+      });
+
+      input.addEventListener("blur", () => {
+        let value = clamp(parseNumber(input.value), min, max);
+        input.value = formatNumber(value, decimals, comma);
+        if (linkedRange) linkedRange.value = value;
+        calculate();
+      });
+    }
+
+    bindFormattedInput("currentMoney", { min: 0, decimals: 0, comma: true });
+
+    sliderPairs.forEach(item => {
+      const range = document.getElementById(item.range);
+      const input = document.getElementById(item.input);
+
+      range.addEventListener("input", () => {
+        input.value = formatNumber(range.value, item.decimals, item.comma);
+        calculate();
+      });
+
+      bindFormattedInput(item.input, item);
+    });
+
+    document.getElementById("toggleSummary").addEventListener("click", () => {
+      const box = document.getElementById("summaryBox");
+      box.style.display = box.style.display === "block" ? "none" : "block";
+    });
+
+    function annuityPresentValue(payment, monthlyReturn, monthlyInflation, months) {
+      let pv = 0;
+      for (let t = 1; t <= months; t++) {
+        const inflatedPayment = payment * Math.pow(1 + monthlyInflation, t - 1);
+        pv += inflatedPayment / Math.pow(1 + monthlyReturn, t);
+      }
+      return pv;
+    }
+
+    function futureValueOfMonthlySaving(monthlySaving, monthlyReturn, months) {
+      if (monthlyReturn === 0) return monthlySaving * months;
+      return monthlySaving * ((Math.pow(1 + monthlyReturn, months) - 1) / monthlyReturn);
+    }
+
+    function calculate() {
+      const currentMoney = parseNumber(document.getElementById("currentMoney").value);
+      const withdraw = parseNumber(document.getElementById("withdrawInput").value);
+      const annualReturn = parseNumber(document.getElementById("returnInput").value) / 100;
+      const inflation = parseNumber(document.getElementById("inflationInput").value) / 100;
+      const years = parseNumber(document.getElementById("yearsInput").value);
+      const retireYears = parseNumber(document.getElementById("retireYearsInput").value);
+
+      const monthlyReturn = Math.pow(1 + annualReturn, 1 / 12) - 1;
+      const monthlyInflation = Math.pow(1 + inflation, 1 / 12) - 1;
+      const savingMonths = years * 12;
+      const retirementMonths = retireYears * 12;
+
+      const retirementNeeded = annuityPresentValue(
+        withdraw,
+        monthlyReturn,
+        monthlyInflation,
+        retirementMonths
+      );
+
+      const currentFutureValue = currentMoney * Math.pow(1 + monthlyReturn, savingMonths);
+      const gap = retirementNeeded - currentFutureValue;
+      const savingFactor = futureValueOfMonthlySaving(1, monthlyReturn, savingMonths);
+      const monthlySave = Math.max(gap / savingFactor, 0);
+
+      document.getElementById("monthlySave").textContent = money(monthlySave);
+
+      const warning = document.getElementById("warningText");
+      if (annualReturn <= inflation && retireYears >= 20) {
+        warning.style.display = "block";
+        warning.textContent = "提醒：投資報酬率低於或接近通膨率時，退休後資產較容易被通膨侵蝕。";
+      } else {
+        warning.style.display = "none";
+        warning.textContent = "";
+      }
+
+      document.getElementById("summaryBox").innerHTML = `
+        <div>退休時需要準備的本金：約 <strong>${money(retirementNeeded)}</strong></div>
+        <div>目前資產到退休時預估成長為：約 <strong>${money(currentFutureValue)}</strong></div>
+        <div>仍需靠每月存款補足：約 <strong>${money(Math.max(gap, 0))}</strong></div>
+        <div>年化投資報酬率：<strong>${percent(annualReturn)}</strong>；通膨率：<strong>${percent(inflation)}</strong></div>
+        <div>模型：退休後每月提領金額會隨通膨上升，未提領資產仍持續以投資報酬率複利成長。</div>
+      `;
+    }
+
+    calculate();
+  </script>
+</body>
+</html>
